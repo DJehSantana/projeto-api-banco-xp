@@ -1,6 +1,7 @@
 import express from 'express';
 import { promises as fs } from 'fs';
 import { jsonDb } from '../enums/appConstantes.js';
+import { logger } from '../enums/logger.js';
 
 const { readFile, writeFile } = fs;
 
@@ -135,6 +136,8 @@ router.patch('/updateBalance', async (req, res, next) => {
 router.use((e, req, res, next) => {
     let erros = [];
     erros.push(e.message);
+
+    logger.error(`${req.method} ${req.baseUrl} - ${e.message}`);
     res.status(400).json({ erros });
 });
 
