@@ -14,11 +14,13 @@ router.post('/', async (req, res, next) => {
         const database = JSON.parse(await readFile(jsonDb.name));
         console.log(database);
 
-        if (newAccount.name && newAccount.balance) {
+
+        if (newAccount.name && parseFloat(newAccount.balance)) {
             //adciona o id indicado no arquivo json a propriedade id da nova conta cadastrada
             newAccount = {
                 id: database.nextId++,
-                ...newAccount
+                name: newAccount.name,
+                balance: newAccount.balance
             }
             //adiciona novo cadastro ao BD
             database.accounts.push(newAccount);
@@ -74,7 +76,8 @@ router.delete('/:id', async (req, res, next) => {
 
         //reescreve o arquivo DB sem o registro com o id passado por parâmetro
         await writeFile(jsonDb.name, JSON.stringify(database, null, 2));
-        res.status(200).send('Account deleted with success!');
+        logger.info('Account deleted with success!');
+        res.end();
 
     } catch (e) {
         next(e);
@@ -92,12 +95,20 @@ router.put('/', async (req, res, next) => {
         // caso conta conste no arquivo DB, substitui o objeto na posição encontrada 
         //pelo novo objeto com os dados recebidos no body
 
-        if (index !== -1) {
-            database.accounts[index] = dataAccount;
+        if (index === -1) {
+            throw new Error('Account not found');
+        }
+
+        if (dataAccount.name && parseFloat(dataAccount.balance)) {
+
+            database.accounts[index].name = dataAccount.name;
+            database.accounts[index].balance = parseFloat(dataAccount.balance);
+
             await writeFile(jsonDb.name, JSON.stringify(database, null, 2));
+            logger.info('Account update with success!');
             res.send(database.accounts[index]);
         } else {
-            throw new Error('Account not found');
+            throw new Error('Invalid fields');
         }
     } catch (e) {
         next(e);
@@ -123,6 +134,7 @@ router.patch('/updateBalance', async (req, res, next) => {
                 database.accounts[index].balance = parseFloat(dataAccount.balance);
                 await writeFile(jsonDb.name, JSON.stringify(database, null, 2));
 
+                logger.info('Balance update with success!');
                 res.send(database.accounts[index]);
             }
         } else {

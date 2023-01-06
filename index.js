@@ -17,7 +17,7 @@ app.listen(3000, async () => {
     try {
         //tenta ler o arquivo de dados
         await readFile(jsonDb.name);
-        logger.info("API Started and file readed with success!");
+        console.log("API Started and file readed with success! \nServer running, port: 3000");
     } catch (e) {
         const initialJson = {
             nextId: 1,
