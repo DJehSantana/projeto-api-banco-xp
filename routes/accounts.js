@@ -64,4 +64,73 @@ router.get('/:id', async (req, res) => {
     }
 });
 
+router.delete('/:id', async (req, res) => {
+    try {
+        const idAccount = parseInt(req.params.id);
+        const database = JSON.parse(await readFile(jsonDb.name));
+
+        database.accounts = database.accounts.filter(account => account.id !== idAccount);
+
+        //reescreve o arquivo DB sem o registro com o id passado por parâmetro
+        await writeFile(jsonDb.name, JSON.stringify(database, null, 2));
+        res.status(200).send('Account deleted with success!');
+
+    } catch (e) {
+        res.status(400).send({ error: e.message });
+    }
+
+});
+
+router.put('/', async (req, res) => {
+    try {
+        let dataAccount = req.body;
+        const database = JSON.parse(await readFile(jsonDb.name));
+
+        //encontra o index do registro com o mesmo id do req.body
+        const index = database.accounts.findIndex(account => account.id === dataAccount.id);
+        // caso conta conste no arquivo DB, substitui o objeto na posição encontrada 
+        //pelo novo objeto com os dados recebidos no body
+        if (index) {
+            database.accounts[index] = dataAccount;
+            await writeFile(jsonDb.name, JSON.stringify(database, null, 2));
+            res.send(database.accounts[index]);
+        } else {
+            throw new Error('Account not found');
+        }
+    } catch (e) {
+        res.status(400).send({ error: e.message });
+    }
+});
+
+router.patch('/updateBalance', async (req, res) => {
+    try {
+        let dataAccount = req.body;
+        const database = JSON.parse(await readFile(jsonDb.name));
+
+        //encontra o index do registro com o mesmo id do req.body
+        const index = database.accounts.findIndex(account => account.id === dataAccount.id);
+
+        if (index) {
+            //caso o valor passado seja igual ao registro anterior ou 
+            //não seja um valor que possa ser transformado em número, dispara um erro
+            if ((database.accounts[index].balance === dataAccount.balance) ||
+                !parseFloat(dataAccount.balance)) {
+                throw new Error('Invalid balance value');
+            } else {
+                //substitui o balance do index encontrado, pelo recebido por parâmetro já convertido em número  
+                database.accounts[index].balance = parseFloat(dataAccount.balance);
+                await writeFile(jsonDb.name, JSON.stringify(database, null, 2));
+
+                res.send(database.accounts[index]);
+            }
+        } else {
+            throw new Error('Account not found');
+        }
+    } catch (e) {
+        res.status(400).send({ error: e.message });
+    }
+})
+
+
+
 export default router;
