@@ -6,7 +6,7 @@ const { readFile, writeFile } = fs;
 
 const router = express.Router();
 
-router.post('/', async (req, res) => {
+router.post('/', async (req, res, next) => {
     try {
         //pega os parâmetros do body
         let newAccount = req.body;
@@ -29,12 +29,12 @@ router.post('/', async (req, res) => {
         res.send(newAccount);
 
     } catch (e) {
-        res.status(400).send({ error: e.message });
+        next(e);
     }
 });
 
 
-router.get('/', async (req, res) => {
+router.get('/', async (req, res, next) => {
     try {
         //Lê todos os registros do arquivo de BD
         const database = JSON.parse(await readFile(jsonDb.name));
@@ -42,11 +42,11 @@ router.get('/', async (req, res) => {
         res.send(database);
 
     } catch (e) {
-        res.status(400).send({ error: e.message });
+        next(e);
     }
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', async (req, res, next) => {
     try {
         const database = JSON.parse(await readFile(jsonDb.name));
         let idAccount = parseInt(req.params.id);
@@ -60,11 +60,11 @@ router.get('/:id', async (req, res) => {
             throw new Error('Account not found');
         }
     } catch (e) {
-        res.status(400).send({ error: e.message });
+        next(e);
     }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', async (req, res, next) => {
     try {
         const idAccount = parseInt(req.params.id);
         const database = JSON.parse(await readFile(jsonDb.name));
@@ -76,12 +76,12 @@ router.delete('/:id', async (req, res) => {
         res.status(200).send('Account deleted with success!');
 
     } catch (e) {
-        res.status(400).send({ error: e.message });
+        next(e);
     }
 
 });
 
-router.put('/', async (req, res) => {
+router.put('/', async (req, res, next) => {
     try {
         let dataAccount = req.body;
         const database = JSON.parse(await readFile(jsonDb.name));
@@ -90,7 +90,8 @@ router.put('/', async (req, res) => {
         const index = database.accounts.findIndex(account => account.id === dataAccount.id);
         // caso conta conste no arquivo DB, substitui o objeto na posição encontrada 
         //pelo novo objeto com os dados recebidos no body
-        if (index) {
+
+        if (index !== -1) {
             database.accounts[index] = dataAccount;
             await writeFile(jsonDb.name, JSON.stringify(database, null, 2));
             res.send(database.accounts[index]);
@@ -98,11 +99,11 @@ router.put('/', async (req, res) => {
             throw new Error('Account not found');
         }
     } catch (e) {
-        res.status(400).send({ error: e.message });
+        next(e);
     }
 });
 
-router.patch('/updateBalance', async (req, res) => {
+router.patch('/updateBalance', async (req, res, next) => {
     try {
         let dataAccount = req.body;
         const database = JSON.parse(await readFile(jsonDb.name));
@@ -110,7 +111,7 @@ router.patch('/updateBalance', async (req, res) => {
         //encontra o index do registro com o mesmo id do req.body
         const index = database.accounts.findIndex(account => account.id === dataAccount.id);
 
-        if (index) {
+        if (index !== -1) {
             //caso o valor passado seja igual ao registro anterior ou 
             //não seja um valor que possa ser transformado em número, dispara um erro
             if ((database.accounts[index].balance === dataAccount.balance) ||
@@ -127,10 +128,14 @@ router.patch('/updateBalance', async (req, res) => {
             throw new Error('Account not found');
         }
     } catch (e) {
-        res.status(400).send({ error: e.message });
+        next(e);
     }
-})
+});
 
-
+router.use((e, req, res, next) => {
+    let erros = [];
+    erros.push(e.message);
+    res.status(400).json({ erros });
+});
 
 export default router;
