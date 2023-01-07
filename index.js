@@ -1,8 +1,11 @@
 import express from 'express';
 import accountsRouter from './routes/accounts.js';
+import swaggerUi from 'swagger-ui-express';
 import { promises as fs } from 'fs';
 import { jsonDb } from './enums/appConstantes.js';
 import { logger } from './enums/logger.js';
+import { swaggerDocument } from './docs/doc.js';
+//import cors from 'cors';
 
 
 const { readFile, writeFile } = fs;
@@ -10,7 +13,9 @@ const { readFile, writeFile } = fs;
 const app = express();
 
 app.use(express.json());
+//app.use(cors());
 
+app.use('/doc', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.use('/account', accountsRouter);
 
 app.listen(3000, async () => {
