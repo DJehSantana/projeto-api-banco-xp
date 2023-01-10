@@ -32,13 +32,10 @@ async function getAccount(req, res, next) {
     try {
         let idAccount = parseInt(req.params.id);
         const account = await listAccountById(idAccount);
-        //verifica se encontrou alguma conta, do contrário lança um erro
-        if (account) {
-            res.send(account);
-            logger.info(`GET /account/:id - ${JSON.stringify(account)}`);
-        } else {
-            throw new Error('Account not found');
-        }
+
+        res.send(account);
+        logger.info(`GET /account/:id - ${JSON.stringify(account)}`);
+
     } catch (e) {
         next(e);
     }
@@ -46,10 +43,8 @@ async function getAccount(req, res, next) {
 
 async function deleteAccount(req, res, next) {
     try {
-        const idAccount = parseInt(req.params.id);
-        await destroyAccount(idAccount);
-
-        logger.info(`DELETE /account/:id - Account ${idAccount} deleted with success!`);
+        await destroyAccount(req.params.id);
+        logger.info(`DELETE /account/:id - Account deleted with success!`);
         res.end();
     } catch (e) {
         next(e);
@@ -59,10 +54,6 @@ async function deleteAccount(req, res, next) {
 async function updateAccount(req, res, next) {
     try {
         let dataAccount = req.body;
-
-        if (!dataAccount.name && !parseFloat(dataAccount.balance)) {
-            throw new Error('Invalid fields');
-        }
 
         const account = await updateAccountProperties(dataAccount);
 

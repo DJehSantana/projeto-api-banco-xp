@@ -1,89 +1,93 @@
 import { promises as fs } from 'fs';
 import { jsonDb } from '../enums/appConstantes.js';
+import { deleteAccount, getAccount, getDataAccounts, insertAccount, updateAccount, updateBalance } from '../repositories/account.repository.js';
+import { readDatabase } from '../repositories/database/database.service.js';
 
 const { readFile, writeFile } = fs;
 
-async function saveAccount(account) {
-    const database = JSON.parse(await readFile(jsonDb.name));
-    console.log(database);
-
-    //adciona o id indicado no arquivo json a propriedade id da nova conta cadastrada
-    account = {
-        id: database.nextId++,
-        name: account.name,
-        balance: account.balance
-    }
-    //adiciona novo cadastro ao BD
-    database.accounts.push(account);
-    // 2 - adiciona espaço na hora de salvar as informações, melhora a formatação do documento
-    await writeFile(jsonDb.name, JSON.stringify(database, null, 2));
-
-    return account;
-
-}
-
 async function listAllAccounts() {
-    const database = JSON.parse(await readFile(jsonDb.name));
-    delete database.nextId;
-
-    return database;
+    return await getDataAccounts();
 }
 
 async function listAccountById(id) {
-    const database = JSON.parse(await readFile(jsonDb.name));
-    //encontra a conta com o mesmo id passado por parâmetro
-    const account = await database.accounts.find(account => account.id === id);
-    return account;
+    const account = await getAccount(id);
+    //verifica se encontrou alguma conta, do contrário lança um erro
+    if (account) {
+        return account
+    } else {
+        console.log(account);
+        throw new Error('Account not found');
+    }
+}
+
+async function saveAccount(account) {
+    return await insertAccount(account);
 }
 
 async function destroyAccount(id) {
-    const database = JSON.parse(await readFile(jsonDb.name));
-    database.accounts = database.accounts.filter(account => account.id !== id);
-    //reescreve o arquivo DB sem o registro com o id passado por parâmetro
-    await writeFile(jsonDb.name, JSON.stringify(database, null, 2));
+    if (!id || !parseInt(id)) {
+        console.log(id);
+        throw new Error('Id value is empty or invalid');
+    }
+
+    const idAccount = parseInt(id);
+    const database = await readDatabase();
+    const account = database.accounts.find(account => account.id === idAccount);
+
+    if (!account) {
+        throw new Error('Account not found');
+    }
+    return await deleteAccount(database, idAccount);
+
 }
 
 async function updateAccountProperties(account) {
-    const database = JSON.parse(await readFile(jsonDb.name));
 
+    const database = await readDatabase();
     //encontra o index do registro com o mesmo id do req.body
     const index = database.accounts.findIndex(acc => acc.id === account.id);
-    // caso conta conste no arquivo DB, substitui o objeto na posição encontrada 
-    //pelo novo objeto com os dados recebidos no body
+    //caso não encontre dispara um erro 
+    if (index === -1) {
+        throw new Error('Account not found');
+    }
+    if (!account.name || !parseFloat(account.balance)) {
+        throw new Error('Invalid fields');
+    }
+    const name = account.name;
+    const balance = parseFloat(account.balance);
+    const editAccount = database.accounts[index];
+
+    const saveAccount = await updateAccount(
+        editAccount,
+        name,
+        balance,
+        database
+    );
+    return saveAccount;
+}
+
+async function updateAccountBalance(account) {
+    const database = await readDatabase();
+    //encontra o index do registro com o mesmo id do req.body
+    const index = database.accounts.findIndex(acc => acc.id === account.id);
 
     if (index === -1) {
         throw new Error('Account not found');
     }
-
-    database.accounts[index].name = account.name;
-    database.accounts[index].balance = parseFloat(account.balance);
-
-    await writeFile(jsonDb.name, JSON.stringify(database, null, 2));
-
-    return database.accounts[index];
-}
-
-async function updateAccountBalance(account) {
-    const database = JSON.parse(await readFile(jsonDb.name));
-
-    //encontra o index do registro com o mesmo id do req.body
-    const index = database.accounts.findIndex(acc => acc.id === account.id);
-
-    if (index !== -1) {
-        //caso o valor passado seja igual ao registro anterior ou 
-        //não seja um valor que possa ser transformado em número, dispara um erro
-        if ((database.accounts[index].balance === account.balance)) {
-            throw new Error('Invalid balance value');
-        } else {
-            //substitui o balance do index encontrado, pelo recebido por parâmetro já convertido em número  
-            database.accounts[index].balance = parseFloat(account.balance);
-            await writeFile(jsonDb.name, JSON.stringify(database, null, 2));
-
-            return database.accounts[index];
-        }
-    } else {
-        throw new Error('Account not found');
+    if (!parseFloat(account.balance) || !account.balance) {
+        throw new Error('Balance value is empty or invalid');
     }
+
+    const updateAccount = database.accounts[index];
+    const balance = parseFloat(account.balance);
+
+    if (updateAccount.balance === balance) {
+        throw new Error('Value reported is equal to the previous one');
+    }
+    //substitui o balance do index encontrado, pelo recebido por parâmetro já convertido em número  
+    const saveAccount = await updateBalance(updateAccount, balance, database);
+
+    return saveAccount;
 }
 
 export {
