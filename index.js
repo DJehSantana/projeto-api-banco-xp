@@ -1,5 +1,5 @@
 import express from 'express';
-import accountsRouter from './routes/accounts.js';
+import accountsRouter from './routes/account.routes.js';
 import swaggerUi from 'swagger-ui-express';
 import { promises as fs } from 'fs';
 import { jsonDb } from './enums/appConstantes.js';

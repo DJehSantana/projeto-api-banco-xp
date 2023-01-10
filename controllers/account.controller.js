@@ -1,43 +1,30 @@
-import express from 'express';
 import { promises as fs } from 'fs';
 import { jsonDb } from '../enums/appConstantes.js';
 import { logger } from '../enums/logger.js';
+import { saveAccount } from '../services/account.service.js';
+
 
 const { readFile, writeFile } = fs;
 
-const router = express.Router();
-
-router.post('/', async (req, res, next) => {
+async function createAccount(req, res, next) {
     try {
         //pega os parâmetros do body
         let newAccount = req.body;
-        const database = JSON.parse(await readFile(jsonDb.name));
-        console.log(database);
 
-
-        if (newAccount.name && parseFloat(newAccount.balance)) {
-            //adciona o id indicado no arquivo json a propriedade id da nova conta cadastrada
-            newAccount = {
-                id: database.nextId++,
-                name: newAccount.name,
-                balance: newAccount.balance
-            }
-            //adiciona novo cadastro ao BD
-            database.accounts.push(newAccount);
-            // 2 - adiciona espaço na hora de salvar as informações, melhora a formatação do documento
-            await writeFile(jsonDb.name, JSON.stringify(database, null, 2));
-        } else {
-            throw new Error('Invalid fields');
+        if (!newAccount.name && !parseFloat(newAccount.balance)) {
+            throw new Error('Empty required fields');
         }
-        res.send(newAccount);
 
+        newAccount = await saveAccount(newAccount);
+        res.send(newAccount);
+        logger.info(`POST /account - ${JSON.stringify(newAccount)}`);
     } catch (e) {
         next(e);
     }
-});
 
+}
 
-router.get('/', async (req, res, next) => {
+async function getAllAccounts(req, res, next) {
     try {
         //Lê todos os registros do arquivo de BD
         const database = JSON.parse(await readFile(jsonDb.name));
@@ -47,9 +34,9 @@ router.get('/', async (req, res, next) => {
     } catch (e) {
         next(e);
     }
-});
+}
 
-router.get('/:id', async (req, res, next) => {
+async function getAccount(req, res, next) {
     try {
         const database = JSON.parse(await readFile(jsonDb.name));
         let idAccount = parseInt(req.params.id);
@@ -65,9 +52,9 @@ router.get('/:id', async (req, res, next) => {
     } catch (e) {
         next(e);
     }
-});
+}
 
-router.delete('/:id', async (req, res, next) => {
+async function deleteAccount(req, res, next) {
     try {
         const idAccount = parseInt(req.params.id);
         const database = JSON.parse(await readFile(jsonDb.name));
@@ -82,10 +69,9 @@ router.delete('/:id', async (req, res, next) => {
     } catch (e) {
         next(e);
     }
+}
 
-});
-
-router.put('/', async (req, res, next) => {
+async function updateAccount(req, res, next) {
     try {
         let dataAccount = req.body;
         const database = JSON.parse(await readFile(jsonDb.name));
@@ -113,9 +99,9 @@ router.put('/', async (req, res, next) => {
     } catch (e) {
         next(e);
     }
-});
+}
 
-router.patch('/updateBalance', async (req, res, next) => {
+async function updateBalance(req, res, next) {
     try {
         let dataAccount = req.body;
         const database = JSON.parse(await readFile(jsonDb.name));
@@ -143,14 +129,13 @@ router.patch('/updateBalance', async (req, res, next) => {
     } catch (e) {
         next(e);
     }
-});
+}
 
-router.use((e, req, res, next) => {
-    let erros = [];
-    erros.push(e.message);
-
-    logger.error(`${req.method} ${req.baseUrl} - ${e.message}`);
-    res.status(400).json({ erros });
-});
-
-export default router;
+export {
+    createAccount,
+    getAccount,
+    getAllAccounts,
+    deleteAccount,
+    updateAccount,
+    updateBalance
+}
