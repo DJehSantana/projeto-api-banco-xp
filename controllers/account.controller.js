@@ -5,14 +5,9 @@ async function createAccount(req, res, next) {
     try {
         //pega os parâmetros do body
         let newAccount = req.body;
-
-        if (!newAccount.name && !parseFloat(newAccount.balance)) {
-            throw new Error('Empty required fields');
-        }
-
-        newAccount = await saveAccount(newAccount);
-        res.send(newAccount);
-        logger.info(`POST /account - ${JSON.stringify(newAccount)}`);
+        const account = await saveAccount(newAccount);
+        res.send(account);
+        logger.info(`POST /account - ${JSON.stringify(account)}`);
     } catch (e) {
         next(e);
     }

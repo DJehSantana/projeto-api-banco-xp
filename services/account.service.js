@@ -21,6 +21,10 @@ async function listAccountById(id) {
 }
 
 async function saveAccount(account) {
+
+    if (!account.name || !parseFloat(account.balance)) {
+        throw new Error('Fields value empty or invalid');
+    }
     return await insertAccount(account);
 }
 
